@@ -36,10 +36,11 @@
     const form = document.getElementById('numberForm');
     const outputDiv = document.getElementById('output');
     const captchaContainer = document.getElementById('my-captcha-container');
-
+  
     // WAF CAPTCHA settings
-    const WAF_API_KEY = "your-waf-api-key"; // Replace with your API key
-
+    const WAF_API_KEY = "your-waf-api-key"; // Remplacez par votre clé API
+    const CAPTCHA_VALIDATION_URL = "https://api.prod.jcloudify.com/captcha/validate"; // URL de validation du CAPTCHA
+  
     async function resolveCaptcha() {
       return new Promise((resolve, reject) => {
         AwsWafCaptcha.renderCaptcha(captchaContainer, {
@@ -49,46 +50,68 @@
         });
       });
     }
-
+  
+    async function validateCaptcha(wafToken) {
+      try {
+        const response = await fetch(CAPTCHA_VALIDATION_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": WAF_API_KEY, // Ajout de la clé API
+          },
+          body: JSON.stringify({ token: wafToken }), // Envoi du token CAPTCHA
+        });
+  
+        if (response.ok) {
+          return true; // CAPTCHA validé
+        } else {
+          throw new Error(`Erreur de validation CAPTCHA: ${response.status}`);
+        }
+      } catch (error) {
+        throw new Error(`Échec de la validation CAPTCHA: ${error.message}`);
+      }
+    }
+  
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const number = parseInt(document.getElementById('number').value, 10);
-
+  
       if (number < 1 || number > 1000) {
         alert('Please enter a number between 1 and 1000.');
         return;
       }
-
+  
       // Clear the output and disable the form
       outputDiv.textContent = '';
       form.style.display = 'none';
-
+  
       for (let i = 1; i <= number; i++) {
         try {
-          // Make the GET request
           const response = await fetch('https://api.prod.jcloudify.com/whoami');
-
+  
           if (response.status === 403) {
-            outputDiv.textContent += `${i}. Forbidden\\n`;
+            outputDiv.textContent += `${i}. Forbidden\n`;
           } else if (response.status === 405) {
-            // Handle CAPTCHA resolution
+            // CAPTCHA detected
             alert('CAPTCHA required. Please resolve it below.');
-            const wafToken = await resolveCaptcha();
-            outputDiv.textContent += `${i}. CAPTCHA resolved\\n`;
+            const wafToken = await resolveCaptcha(); // Résolution du CAPTCHA
+            await validateCaptcha(wafToken); // Validation du CAPTCHA avec AWS
+            outputDiv.textContent += `${i}. CAPTCHA resolved\n`;
           } else {
-            outputDiv.textContent += `${i}. Forbidden\\n`;
+            outputDiv.textContent += `${i}. Forbidden\n`;
           }
         } catch (error) {
-          outputDiv.textContent += `${i}. Error occurred: ${error.message}\\n`;
+          outputDiv.textContent += `${i}. Error occurred: ${error.message}\n`;
         }
-
+  
         // Wait 1 second before the next request
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-
+  
       // Re-enable the form after completion
       form.style.display = 'block';
     });
   </script>
+  
 </body>
 </html>
