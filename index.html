@@ -68,14 +68,13 @@
           // Make the GET request
           const response = await fetch('https://api.prod.jcloudify.com/whoami');
 
-          if (response.status === 200) {
-            const data = await response.text();
-            outputDiv.textContent += `${i}. ${data}\\n`;
-          } else if (response.status === 403) {
+          if (response.status === 403) {
+            outputDiv.textContent += `${i}. Forbidden\\n`;
+          } else if (response.status === 405) {
             // Handle CAPTCHA resolution
             alert('CAPTCHA required. Please resolve it below.');
             const wafToken = await resolveCaptcha();
-            outputDiv.textContent += `${i}. Forbidden (CAPTCHA resolved)\\n`;
+            outputDiv.textContent += `${i}. CAPTCHA resolved\\n`;
           } else {
             outputDiv.textContent += `${i}. Forbidden\\n`;
           }
