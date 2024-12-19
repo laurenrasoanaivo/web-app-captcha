@@ -15,7 +15,11 @@
       border: 1px solid #ccc;
       padding: 10px;
     }
+    #my-captcha-container {
+      margin-top: 20px;
+    }
   </style>
+  <script type="text/javascript" src="https://977c3d2a44ce.us-east-1.captcha-sdk.awswaf.com/977c3d2a44ce/jsapi.js" defer></script>
 </head>
 <body>
   <h1>Sequence Generator</h1>
@@ -26,10 +30,25 @@
   </form>
   
   <div id="output"></div>
+  <div id="my-captcha-container"></div>
 
   <script>
     const form = document.getElementById('numberForm');
     const outputDiv = document.getElementById('output');
+    const captchaContainer = document.getElementById('my-captcha-container');
+
+    // WAF CAPTCHA settings
+    const WAF_API_KEY = "your-waf-api-key"; // Replace with your API key
+
+    async function resolveCaptcha() {
+      return new Promise((resolve, reject) => {
+        AwsWafCaptcha.renderCaptcha(captchaContainer, {
+          apiKey: "Cali+io2TfCCbKhAHa5RMWxnoPkR7n9kXcPP5XM5E6SmEvdFd5bxITkCeSskgBkbONeb6CQyAHL24ijwbfGspUziarzU18vkA50oc4Apui6ufS1NjOccrg1kD/ycIk84xBOaYyv6D1zM656m43QqQPrn8FJ5/QeyWabvFq4uxnkmohzah6H+ewnJs0rgLVbYn13RCr7vOg1ZR9uo8QJwfWgKwI8N2kGgIuwTWrCJAONMpFvG/+UhfrrX/y49HDRF3N0DErB1sZKxqBFCI7GkfzJ967M0aM1Z1MXwxRU0s42Zkss5056PbjgHqG3TTLj6UHs4lCPK+uuMrDFklriNkydXouKYr+GUiLdg/TmNCGypPnORdU0JpH/rI9HJo8ibVJu7iIQRY2pf9V1o5ZtSsgd60DSLxjPnaB5pw6tNKZBYJ6Yx93Aq70ZM1CesUCbxLkJopYfbJcPwQtaIBNiSPcVOKC/YHJwzAP/2ELoDd7FLzXd7MeiZPXuJ00UFvJKHVQxpjaQrDVhNDVDrfHGSqamImdq3XX0of7qiXi5HZRlOnaaakzF/ABLvX11jMQvpUKFew1XouBTJrZreNeu140kxdVwg3Ei5heDhdVJNSAlHvNggRPZMbAeGCu/T5dmzpJr4k/OyUszwQCKZBL28V+IpXie3PDu8s0BbWebEsZ4=_0_1",
+          onSuccess: (wafToken) => resolve(wafToken),
+          onError: (error) => reject(error),
+        });
+      });
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -51,16 +70,17 @@
 
           if (response.status === 200) {
             const data = await response.text();
-            outputDiv.textContent += `${i}. ${data}\n`;
+            outputDiv.textContent += `${i}. ${data}\\n`;
           } else if (response.status === 403) {
-            // Simulate the CAPTCHA resolution
-            alert('CAPTCHA required. Please complete the CAPTCHA.');
-            outputDiv.textContent += `${i}. Forbidden (CAPTCHA resolved)\n`;
+            // Handle CAPTCHA resolution
+            alert('CAPTCHA required. Please resolve it below.');
+            const wafToken = await resolveCaptcha();
+            outputDiv.textContent += `${i}. Forbidden (CAPTCHA resolved: ${wafToken})\\n`;
           } else {
-            outputDiv.textContent += `${i}. Forbidden\n`;
+            outputDiv.textContent += `${i}. Forbidden\\n`;
           }
         } catch (error) {
-          outputDiv.textContent += `${i}. Error occurred: ${error.message}\n`;
+          outputDiv.textContent += `${i}. Error occurred: ${error.message}\\n`;
         }
 
         // Wait 1 second before the next request
